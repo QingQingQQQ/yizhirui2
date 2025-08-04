@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>南京鸟类观测数据统计</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+    <style>
+        #chart-container {
+            width: 100%;
+            height: 800px;  /* 进一步增加高度 */
+            margin: 0 auto;
+        }
+        .title {
+            text-align: center;
+            font-family: "Microsoft YaHei";
+            margin: 20px 0;
+        }
+        .fallback {
+            text-align: center;
+            color: red;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">南京各区鸟类观测数据三维统计</h1>
+    <div id="chart-container">
+        <p class="fallback">图表加载中...</p>
+    </div>
+
+    <script>
+        // 检测WebGL支持
+        function checkWebGL() {
+            try {
+                var canvas = document.createElement('canvas');
+                return !!(
+                    window.WebGLRenderingContext &&
+                    (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+                );
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 主逻辑
+        if (!checkWebGL()) {
+            document.querySelector('.fallback').innerHTML = '您的浏览器不支持WebGL，请使用Chrome/Firefox/Edge等现代浏览器';
+        } else {
+            initialize3DChart();
+        }
+
+        // 初始化3D图表（柱子加粗版）
+        function initialize3DChart() {
+            try {
+                var myChart = echarts.init(document.getElementById('chart-container'));
+                
+                var months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                var districts = ['高淳区', '鼓楼区', '建邺区', '江宁区', '溧水区', '六合区', '浦口区', '栖霞区', '秦淮区', '玄武区', '雨花台区'];
+                
+                var birdCountData = [
+                    [4972, 8576, 7806, 13313, 62694, 63998, 98833, 14500, 3644, 52752, 1614],
+                    [1096, 3653, 4221, 32622, 8278, 30479, 14208, 6232, 5190, 42039, 42895],
+                    [1659, 7821, 4456, 20519, 3553, 12854, 11537, 19692, 2254, 30551, 827],
+                    [209, 10620, 3998, 20948, 2583, 21401, 14892, 28625, 2384, 17086, 2],
+                    [655, 7728, 5277, 13579, 2138, 4999, 28242, 27603, 1500, 16404, 57],
+                    [8, 2169, 3346, 8546, 322, 4858, 21381, 6706, 1032, 13071, 101],
+                    [44, 1025, 1260, 4275, 23, 2818, 5666, 3524, 1592, 6387, 327],
+                    [6, 2114, 1322, 4742, 70, 5427, 5752, 6371, 3687, 5239, 146],
+                    [149, 11316, 2805, 12975, 945, 5575, 7607, 27329, 1901, 12649, 131],
+                    [1261, 9416, 3329, 15514, 3600, 44629, 8848, 36706, 983, 27297, 170],
+                    [2433, 3717, 3249, 15165, 126414, 44863, 26774, 36374, 4617, 29685, 244],
+                    [223, 7657, 3494, 8709, 47541, 52663, 10678, 14278, 1857, 50960, 80]
+                ];
+
+                var data = [];
+                for (var i = 0; i < months.length; i++) {
+                    for (var j = 0; j < districts.length; j++) {
+                        data.push([i, j, birdCountData[i][j]]);
+                    }
+                }
+
+                var option = {
+                    tooltip: {
+                        formatter: function(params) {
+                            return `${months[params.value[0]]}<br>${districts[params.value[1]]}<br>数量: ${params.value[2]}`;
+                        }
+                    },
+                    grid3D: {
+                        width: '95%',
+                        height: '80%',
+                        viewControl: {
+                            alpha: 35,
+                            beta: 20,
+                            distance: 180,  // 拉远视距给粗柱子留空间
+                            rotateSensitivity: 1,
+                            zoomSensitivity: 0.5
+                        },
+                        light: {
+                            main: {
+                                intensity: 1.2,
+                                shadow: true,  // 开启阴影增强立体感
+                                shadowQuality: 'medium'
+                            }
+                        }
+                    },
+                    xAxis3D: {
+                        type: 'category',
+                        data: months,
+                        name: '月份',
+                        nameLocation: 'middle',
+                        nameGap: 30,
+                        axisLabel: { 
+                            interval: 0,
+                            rotate: 45,
+                            fontSize: 10,
+                            margin: 5  // 增加标签间距
+                        }
+                    },
+                    yAxis3D: {
+                        type: 'category',
+                        data: districts,
+                        name: '区域',
+                        nameLocation: 'middle',
+                        nameGap: 40,
+                        axisLabel: { 
+                            interval: 0,
+                            rotate: -45,
+                            fontSize: 10,
+                            margin: 5
+                        }
+                    },
+                    zAxis3D: {
+                        type: 'value',
+                        name: '鸟种数量',
+                        nameLocation: 'middle',
+                        nameGap: 30
+                    },
+                    series: [{
+                        type: 'bar3D',
+                        data: data,
+                        barSize: 5,  // !!! 主要修改点：柱子宽度加大到5 !!!
+                        bevelSize: 0.3,  // 增加柱顶斜面效果
+                        shading: 'realistic',
+                        itemStyle: {
+                            opacity: 0.9,
+                            borderWidth: 0.5,
+                            borderColor: 'rgba(100,100,100,0.5)',
+                            color: function(params) {
+                                var value = params.value[2];
+                                if (value > 50000) return '#c23531';
+                                if (value > 20000) return '#2f4554';
+                                if (value > 10000) return '#61a0a8';
+                                if (value > 5000) return '#d48265';
+                                return '#91c7ae';
+                            }
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                color: '#dd6b66',
+                                borderWidth: 1,
+                                borderColor: '#333'
+                            }
+                        }
+                    }]
+                };
+
+                myChart.setOption(option);
+                document.querySelector('.fallback').style.display = 'none';
+
+                // 自动旋转动画（可选）
+                var angle = 20;
+                var rotationInterval = setInterval(function() {
+                    angle += 0.5;
+                    myChart.setOption({
+                        grid3D: {
+                            viewControl: {
+                                beta: angle % 360
+                            }
+                        }
+                    });
+                }, 50);
+
+                // 鼠标交互时暂停自动旋转
+                myChart.on('mouseover', function() {
+                    clearInterval(rotationInterval);
+                });
+                myChart.on('mouseout', function() {
+                    rotationInterval = setInterval(function() {
+                        angle += 0.5;
+                        myChart.setOption({
+                            grid3D: {
+                                viewControl: {
+                                    beta: angle % 360
+                                }
+                            }
+                        });
+                    }, 50);
+                });
+
+                window.addEventListener('resize', function() {
+                    myChart.resize();
+                });
+                
+            } catch (e) {
+                document.querySelector('.fallback').innerHTML = '三维图表初始化失败: ' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>
